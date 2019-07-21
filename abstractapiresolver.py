@@ -8,9 +8,9 @@ class AbstractApiResolver(metaclass=ABCMeta):
 
     def _get_api_json_response(self, endpoint, data=None):
         """ Return the API JSON response """
-        response = requests.get(url=self.base_url.format(endpoint=endpoint),
-                                data=data,
-                                headers=self.headers)
+        response = requests.get(
+            url=self.base_url.format(endpoint=endpoint), data=data, headers=self.headers
+        )
         return response.json()
 
     @abstractmethod

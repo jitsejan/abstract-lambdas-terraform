@@ -7,24 +7,18 @@ class JokeApiResolver(AbstractApiResolver):
 
     def get_data(self, endpoint, **params):
         """ Get data from the API """
-        url = self.endpoints[endpoint]['url']
+        url = self.endpoints[endpoint]["url"]
         return self._get_api_json_response(url)
 
     @property
     def base_url(self):
-        return 'https://official-joke-api.appspot.com/{endpoint}'
+        return "https://official-joke-api.appspot.com/{endpoint}"
 
     @property
     def endpoints(self):
         return {
-            'get_programming_joke': {
-                'data': None,
-                'url': 'jokes/programming/random',
-            },
-            'get_random_joke': {
-                'data': None,
-                'url': 'random_joke',
-            }
+            "get_programming_joke": {"data": None, "url": "jokes/programming/random"},
+            "get_random_joke": {"data": None, "url": "random_joke"},
         }
 
     @property
