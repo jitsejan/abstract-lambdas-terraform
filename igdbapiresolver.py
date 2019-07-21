@@ -1,21 +1,10 @@
 """ igdbapiresolver.py """
 import os
-import requests
+from abstractapiresolver import AbstractApiResolver
 
 
-class IGDBApiResolver:
+class IGDBApiResolver(AbstractApiResolver):
     """ Class definition for the IGDBApiResolver """
-    BASE_URL = 'https://api-v3.igdb.com/{endpoint}'
-    HEADERS = {
-        'user-key': os.environ.get('IGDB_KEY', '')
-    }
-
-    def _get_api_json_response(self, endpoint, data):
-        """ Return the API JSON response """
-        response = requests.get(url=self.BASE_URL.format(endpoint=endpoint),
-                                data=data,
-                                headers=self.HEADERS)
-        return response.json()
 
     def get_games(self, platform_id, name=None):
         """ Get the games for a given platform and an optional name filter """
@@ -36,3 +25,13 @@ class IGDBApiResolver:
 
         return self._get_api_json_response(endpoint=endpoint,
                                            data=query.format(abbr=platform_abbreviation))[0]['id']
+
+    @property
+    def headers(self):
+        return {
+            'user-key': os.environ.get('IGDB_KEY', '')
+        }
+
+    @property
+    def base_url(self):
+        return 'https://api-v3.igdb.com/{endpoint}'
