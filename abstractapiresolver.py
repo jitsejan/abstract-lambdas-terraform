@@ -13,6 +13,10 @@ class AbstractApiResolver(metaclass=ABCMeta):
                                 headers=self.headers)
         return response.json()
 
+    @abstractmethod
+    def get_data(self):
+        pass
+
     @property
     @abstractmethod
     def headers(self):
@@ -21,4 +25,9 @@ class AbstractApiResolver(metaclass=ABCMeta):
     @property
     @abstractmethod
     def base_url(self):
+        pass
+
+    @property
+    @abstractmethod
+    def endpoints(self):
         pass

@@ -6,25 +6,32 @@ from abstractapiresolver import AbstractApiResolver
 class IGDBApiResolver(AbstractApiResolver):
     """ Class definition for the IGDBApiResolver """
 
-    def get_games(self, platform_id, name=None):
-        """ Get the games for a given platform and an optional name filter """
-        endpoint = 'games'
-        if name:
-            query = 'fields name; where name ~ *"{name}"* & platforms = {platform_id}; limit 50;'
-        else:
-            query = 'fields name; where platforms = {platform_id}; limit 50;'
+    def get_data(self, endpoint, **params):
+        """ Get data from the API """
+        url = self.endpoints[endpoint]['url']
+        data = self.endpoints[endpoint]['data'].format(**params)
+        return self._get_api_json_response(url, data)
 
-        return self._get_api_json_response(endpoint=endpoint,
-                                           data=query.format(name=name,
-                                                             platform_id=platform_id))
+    @property
+    def base_url(self):
+        return 'https://api-v3.igdb.com/{endpoint}'
 
-    def get_platform_id(self, platform_abbreviation):
-        """ Get the platform ID for a given platform abbreviation """
-        endpoint = 'platforms'
-        query = 'fields id; where abbreviation = "{abbr}";'
-
-        return self._get_api_json_response(endpoint=endpoint,
-                                           data=query.format(abbr=platform_abbreviation))[0]['id']
+    @property
+    def endpoints(self):
+        return {
+            'get_platform_id': {
+                'data': 'fields id; where abbreviation = "{abbr}";',
+                'url': 'platforms',
+            },
+            'get_games_for_platform': {
+                'data': 'fields name; where platforms = {platform_id}; limit 50;',
+                'url': 'games',
+            },
+            'get_games_for_platform_with_name': {
+                'data': 'fields name; where name ~ *"{name}"* & platforms = {platform_id}; limit 50;',
+                'url': 'games',
+            },
+        }
 
     @property
     def headers(self):
@@ -32,6 +39,3 @@ class IGDBApiResolver(AbstractApiResolver):
             'user-key': os.environ.get('IGDB_KEY', '')
         }
 
-    @property
-    def base_url(self):
-        return 'https://api-v3.igdb.com/{endpoint}'
