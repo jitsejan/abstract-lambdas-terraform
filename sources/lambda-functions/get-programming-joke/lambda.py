@@ -1,6 +1,6 @@
 """ get_programming_joke.py """
 import json
-from jokeapiresolver import JokeApiResolver
+from abstractlayer.jokeapiresolver import JokeApiResolver
 
 
 def lambda_handler(event, context):

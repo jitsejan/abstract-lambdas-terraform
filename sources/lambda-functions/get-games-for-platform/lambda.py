@@ -1,6 +1,6 @@
 """ get_games_for_platform.py """
 import json
-from igdbapiresolver import IGDBApiResolver
+from abstractlayer.igdbapiresolver import IGDBApiResolver
 
 
 def lambda_handler(event, context):
