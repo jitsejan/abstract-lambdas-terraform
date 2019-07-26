@@ -1,9 +1,14 @@
-# Abstract classes with Lambdas and Terraform
-
+# Abstracting Lambda functions
 ## Objective
-In this repository I try to use abstract classes in Python to make it easier to develop Lambda functions and deploy with Terraform.
+- Understand Python's *abstract classes*
+- Implement a few *concrete classes*
+- Understand basic software principles
+- Create foundation for scalable serverless deployment with Lambda functions
 
 ## Introduction
+In this article I want to touch on different things. I have been working with [AWS Lambda](https://aws.amazon.com/lambda/) and [Terraform](https://www.terraform.io) for a while now and I am constantly trying to improve my knowledge. By making a small project I hope to give a good idea of a minimal Terraform deployment for people that are new to Terraform. 
+
+In previous years I have been working as a Software Engineer where code was written in a more consistent way and software practices were followed according to the different *Software Design Patterns* ([Gang of Four Patterns](https://www.gofpatterns.com)) . I have noticed that in my current team everybody understands Python and PySpark, but often code is simply written as a sequential script rather than a proper structure with appropriate classes. This was not a problem when my team was still small, but since we are scaling here at MarketInvoice, more people are working on the code base. For example, we have a variety of AWS Lambda functions that crawl data from third parties (i.e. Jira, PagerDuty) which are all written as standalone functions with (a lot) of overlapping code. The idea is to create a common class with shared functionality which can then be used by the different crawlers and avoid repeating writing the same code over and over again ([Don't repeat yourself - Wikipedia](https://en.wikipedia.org/wiki/Don%27t_repeat_yourself)). By utilizing these software principles, I am sure my team will become more productive and can spend more time on adding more interesting data to our data platform and reduce fixing bugs.
 
 ## Initialization
 First I create the Git repository for this tutorial on Github. After creating the repo, I clone it to my code directory.
@@ -28,7 +33,7 @@ After opening PyCharm, make sure to add the `.idea` folder to the `.gitignore`.
 ~/code/abstract-lambdas-terraform $ echo .idea >> .gitignore
 ```
 
-Additionally, add the API key from IGDB to your shell, either add the `export IGDB_KEY="<KEY>"` to `~/.bashrc` or `~/.zshrc` and run `source` on the file you've just changed to make variable available in your terminal and Python.
+Additionally, add the API key from IGDB (see below) to your shell, either add the `export IGDB_KEY="<KEY>"` to `~/.bashrc` or `~/.zshrc` and run `source` on the file you've just changed to make variable available in your terminal and Python.
 
 ```bash
 ~/code/abstract-lambdas-terraform $ echo $IGDB_KEY
@@ -974,7 +979,7 @@ if __name__ == "__main__":
 ```
 
 ### Terraform
-See my article on [Creating a Lambda function with Terraform to upload a Looker view](https://www.jitsejan.com/creating-terraform-deployment-aws-lambda-looker.html) for a simple Terraform introduction. In this article I will simply show the steps to deploy the following:
+See my article on [Creating a Lambda function with Terraform to upload a Looker view | JJ's World](https://www.jitsejan.com/creating-terraform-deployment-aws-lambda-looker.html) for a simple Terraform introduction. In this article I will simply show the steps to deploy the following:
 
 - `get_games_for_platform` Lambda function
 - `get_programming_joke` Lambda function
@@ -983,8 +988,107 @@ See my article on [Creating a Lambda function with Terraform to upload a Looker 
 	- Concrete class  `IGDBApiResolver` 
 	- Concrete class `JokeApiResolver`
 
+#### Initialization
+
+```bash
+~/code/abstract-lambdas-terraform $ terraform init
+...
+~/code/abstract-lambdas-terraform $ terraform workspace new dev
+Created and switched to workspace "dev"!
+~/code/abstract-lambdas-terraform $ touch main.tf
+~/code/abstract-lambdas-terraform $ touch variables.tf
+```
+
+#### Structure  
+
+```bash
+~/code/abstract-lambdas-terraform $ tree .
+.
+├── README.md
+├── images
+│   ├── postman_get_games.png
+│   └── postman_get_platform.png
+├── main.tf
+├── sources
+│   ├── lambda-functions
+│   │   ├── get-games-for-platform
+│   │   │   └── get_games_for_platform.py
+│   │   └── get-programming-joke
+│   │       └── get_programming_joke.py
+│   └── lambda-layers
+│       └── abstract-layer
+│           └── python
+│               └── abstractlayer
+│                   ├── __init__.py
+│                   ├── __main__.py
+│                   ├── abstractapiresolver.py
+│                   ├── igdbapiresolver.py
+│                   └── jokeapiresolver.py
+├── terraform.tfstate.d
+│   └── dev
+└── variables.tf
+```
+
+#### Build
+
+##### Lambda layer
+In order to create the right `lambda.zip` for the Lambda layer, we create a `dist`folder and copy the content of the `python`folder inside. Additionally we need to install all the requirements (in this case only `requests`) for AWS with Docker. We add everything to the ZIP file inside the `dist` folder.
+
+```bash
+~/code/abstract-lambdas-terraform/sources/lambda-layers/abstract-layer $ mkdir -p dist/python 
+~/code/abstract-lambdas-terraform/sources/lambda-layers/abstract-layer $ docker run --rm -v $(PWD):/foo -w /foo lambci/lambda:build-python3.7 \
+	pip install -r requirements.txt -t ./dist/python
+~/code/abstract-lambdas-terraform/sources/lambda-layers/abstract-layer $ cp -r ./python/* ./dist
+~/code/abstract-lambdas-terraform/sources/lambda-layers/abstract-layer $ cd dist 
+~/code/abstract-lambdas-terraform/sources/lambda-layers/abstract-layer/dist $ zip -rD lambda.zip .
+  adding: python/abstractlayer/jokeapiresolver.py (deflated 55%)
+  adding: python/abstractlayer/abstractapiresolver.py (deflated 61%)
+  adding: python/abstractlayer/__init__.py (stored 0%)
+  adding: python/abstractlayer/igdbapiresolver.py (deflated 62%)
+  adding: python/abstractlayer/__main__.py (deflated 56%)
+
+```
+
+##### Lambda functions
+For the Lambda functions we make sure we first rename the files to `lambda.py` since that's the default filename AWS expects as default module name. Then we create again a `dist` folder, add the `lambda.py` and compress the file.
+
+```bash
+~/code/abstract-lambdas-terraform/sources/lambda-functions/get-games-for-platform $ mkdir dist                     
+~/code/abstract-lambdas-terraform/sources/lambda-functions/get-games-for-platform $ cp lambda.py dist/ 
+~/code/abstract-lambdas-terraform/sources/lambda-functions/get-games-for-platform $ cd dist && zip -rD lambda.zip .
+  adding: lambda.py (deflated 50%)
+```
+
+##### Validate
+Run `terraform validate`to ensure all files are there and there is no configuration issue.
+
+```bash
+~/code/abstract-lambdas-terraform  $ terraform validate
+Success! The configuration is valid.
+```
+
+##### Plan & apply
+```bash
+~/code/abstract-lambdas-terraform  $ terraform plan
+...
+~/code/abstract-lambdas-terraform  $ terraform apply
+...
+Apply complete! Resources: 5 added, 0 changed, 0 destroyed.
+```
+
+##### Results
+Overview of the two Lambda functions:
+
+![](images/lambda_overview.png)
+
+Running the Lambda function:
+
+![](images/lambda_execution.png)
 
 ## Conclusion
+Using abstract classes makes it easier to create complex software, even when running serverless code on AWS. By using these type of classes you can enforce the developer that creates a new concrete class to implement all the necessary methods and properties to ensure code consistency. The approach in my team would be to create all classes as part of one Lambda layer that contains the Python module with the different abstract classes (APIConnector, FTPConnector, etc) and all concrete classes (CompaniesHouseApiConnector, ExperianApiConnector, etc). The Lambda functions to execute the actual data crawl can remain short and simple making it more scalable and flexible to add new endpoints and therefore new datasets to the data lake.
+
+
 ## Reference
 [GitHub - jitsejan/abstract-lambdas-terraform](https://github.com/jitsejan/abstract-lambdas-terraform.git)
 
